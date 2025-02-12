@@ -1,101 +1,190 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+import { useState } from "react"
+import { Upload, Send } from "lucide-react"
+import type React from "react"
+import { Document, Page } from 'react-pdf';
+import { pdfjs } from 'react-pdf';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
+
+type Message = {
+  text: string
+  isUser: boolean
 }
+
+// Custom Button component
+const Button = ({
+  children,
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) => (
+  <button
+    className={`px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`}
+    {...props}
+  >
+    {children}
+  </button>
+)
+
+// Custom Input component
+const Input = ({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { className?: string }) => (
+  <input
+    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 ${className}`}
+    {...props}
+  />
+)
+
+// Custom Card components
+const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-white shadow-md rounded-lg ${className}`}>{children}</div>
+)
+
+const CardHeader = ({ children }: { children: React.ReactNode }) => (
+  <div className="px-4 py-5 border-b border-gray-200 sm:px-6">{children}</div>
+)
+
+const CardContent = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`px-4 py-5 sm:p-6 ${className}`}>{children}</div>
+)
+
+const CardTitle = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-lg leading-6 font-medium text-gray-900">{children}</h3>
+)
+
+export default function PdfChatPage() {
+  const [numPages, setNumPages] = useState<number>();
+  const [pageNumber, setPageNumber] = useState<number>(1);
+
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
+    setNumPages(numPages);
+  }
+
+  const [file, setFile] = useState<File | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const droppedFile = e.dataTransfer.files[0]
+    if (droppedFile && droppedFile.type === "application/pdf") {
+      setFile(droppedFile)
+    }
+  }
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile && selectedFile.type === "application/pdf") {
+      setFile(selectedFile)
+    }
+  }
+
+  const handleSend = () => {
+    if (input.trim()) {
+      setMessages([...messages, { text: input, isUser: true }])
+      setInput("")
+      // Here you would typically send the message to your backend
+      // and then add the response to the messages
+      simulateResponse()
+    }
+  }
+
+  const simulateResponse = () => {
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: "This is a simulated response. In a real application, this would be the AI's response based on the PDF content.",
+          isUser: false,
+        },
+      ])
+    }, 1000)
+  }
+
+  return (
+    <div className="flex flex-col md:flex-row h-screen bg-gray-100">
+      <div className="w-full md:w-1/2 p-3">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Upload PDF</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-300 ease-in-out cursor-pointer"
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              {file ? (
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-700">{file.name}</p>
+                  <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-lg font-semibold text-gray-700">Drag and drop your PDF here</p>
+                  <p className="text-sm text-gray-500 mt-2">or</p>
+                  <label htmlFor="file-upload">
+                    <Button className="mt-4 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
+                      Select PDF
+                    </Button>
+                  </label>
+                  <input id="file-upload" type="file" className="hidden" accept=".pdf" onChange={handleFileInput} />
+                </>
+              )}
+            </div>
+            {file && (
+              <Button className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white">Upload and Process</Button>
+            )}
+          </CardContent>
+          {file && (
+             <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+             <Page pageNumber={pageNumber} />
+           </Document>
+          )}
+         
+
+        </Card>
+      </div>
+      <div className="w-full md:w-1/2 p-3">
+        <Card className="h-full flex flex-col">
+          <CardHeader>
+            <CardTitle>Chat with PDF</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow overflow-auto">
+            <div className="space-y-4">
+              {messages.map((message, index) => (
+                <div key={index} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-lg ${
+                      message.isUser ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-800"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex space-x-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              />
+              <Button onClick={handleSend} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
