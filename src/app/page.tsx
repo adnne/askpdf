@@ -12,7 +12,6 @@ type Message = {
   isUser: boolean;
 };
 
-// Custom Button component
 const Button = ({ children, className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) => (
   <button
     className={`px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`}
@@ -22,7 +21,6 @@ const Button = ({ children, className = "", ...props }: React.ButtonHTMLAttribut
   </button>
 );
 
-// Custom Input component
 const Input = ({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement> & { className?: string }) => (
   <input
     className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 ${className}`}
@@ -30,7 +28,6 @@ const Input = ({ className = "", ...props }: React.InputHTMLAttributes<HTMLInput
   />
 );
 
-// Custom Card components
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`bg-white shadow-md rounded-lg ${className}`}>{children}</div>
 );
@@ -77,7 +74,12 @@ export default function PdfChatPage() {
       simulateResponse();
     }
   };
-
+  const handleSelectPdf = () => {
+    const fileInput = document.getElementById("file-upload");
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
   const simulateResponse = () => {
     setTimeout(() => {
       setMessages((prev) => [
@@ -118,7 +120,7 @@ export default function PdfChatPage() {
                     <p className="text-lg font-semibold text-gray-700">Drag and drop your PDF here</p>
                     <p className="text-sm text-gray-500 mt-2">or</p>
                     <label htmlFor="file-upload">
-                      <Button className="mt-4 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">Select PDF</Button>
+                      <Button onClick={handleSelectPdf} className="mt-4 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">Select PDF</Button>
                     </label>
                     <input
                       id="file-upload"
