@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react';
+import { signup } from '../actions';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -47,8 +48,7 @@ export default function RegisterPage() {
     e.preventDefault();
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length === 0) {
-      console.log(formData);
-      // Handle form submission here
+      signup(formData);
     } else {
       setErrors(validationErrors);
     }
