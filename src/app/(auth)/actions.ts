@@ -13,7 +13,6 @@ export async function login(formData: FormData) {
     email: formData.email as string,
     password: formData.password as string,
   }
-
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {

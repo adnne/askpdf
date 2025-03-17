@@ -3,9 +3,10 @@
 import { Worker } from "@react-pdf-viewer/core";
 import { Viewer } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload, Send } from "lucide-react";
 import type React from "react";
+import { createClient } from "../../../../utils/supabase/client";
 
 type Message = {
   text: string;
@@ -18,13 +19,38 @@ export default function Chat() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null)
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    
+    getUser()
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null)
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && droppedFile.type === "application/pdf") {
       setFile(droppedFile);
-      setFileUrl(URL.createObjectURL(droppedFile)); // Convert file to URL
+      setFileUrl(URL.createObjectURL(droppedFile)); 
     }
   };
 
@@ -32,7 +58,7 @@ export default function Chat() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
-      setFileUrl(URL.createObjectURL(selectedFile)); // Convert file to URL
+      setFileUrl(URL.createObjectURL(selectedFile)); 
     }
   };
 
@@ -61,6 +87,37 @@ export default function Chat() {
     }, 1000);
   };
 
+  const handleUpload = async () => {
+    const supabase = createClient();
+    if (!file) return;
+    
+    const file_path = `pdfs/${file.name}`;
+  
+    setUploading(true);
+
+    const { data, error } = await supabase.storage
+      .from('pdfs')
+      .upload(file_path, file);
+
+    if (error) {
+      console.error('Error uploading file:', error);
+    } else {
+      console.log('File uploaded successfully:', data);
+      const { data: documentData, error: documentError } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        file_name: file.name,
+        file_path: file_path,
+        status: 'processing'
+      })
+      .select()
+      .single()
+    }
+
+    setUploading(false);
+  };
+
   return (
     <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
       <div className="flex flex-col md:flex-row h-screen bg-gray-100">
@@ -70,9 +127,9 @@ export default function Chat() {
           <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">Upload PDF</h3>
             </div>
-            <div className="px-4 py-5 sm:p-6">
+            <div className="px-4 py-5 sm:p-6 h-[calc(100vh-8rem)]">
               {fileUrl ? (
-                <div className="h-[calc(100vh-8rem)] relative">
+                <div className=" h-full relative">
                   <div onClick={() => setFileUrl(null)} className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded cursor-pointer z-50" >
                     remove
                   </div>
@@ -101,11 +158,12 @@ export default function Chat() {
                       onChange={handleFileInput}
                     />
                   </div>
-                  <button className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ">
-                    Upload and Process
-                  </button>
+                
                 </>
               )}
+                <button onClick={handleUpload} className=" w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ">
+                    Upload and Process
+                </button>
             </div>
           </div>
         </div>
